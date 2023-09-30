@@ -6,12 +6,10 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 
-import android.util.Log
-
+import android.widget.SeekBar
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,14 +17,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val imageView = findViewById<ImageView>(R.id.imageView)
-        val generateButton = findViewById<Button>(R.id.generateButton)
-        val numQuadratiEditText = findViewById<EditText>(R.id.numQuadratiEditText)
-        Log.d("MainActivity", "numQuadratiEditText: $numQuadratiEditText")
+        val seekBar = findViewById<SeekBar>(R.id.seekBar)
 
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                imageView.setImageBitmap(generateImage(progress))
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        // Setta l'immagine iniziale
+        imageView.setImageBitmap(generateImage(4))
+
+        val generateButton = findViewById<Button>(R.id.generateButton)
         generateButton.setOnClickListener {
-            val numQuadrati = numQuadratiEditText.text.toString().toIntOrNull() ?: 4 // Default a 4 se non viene inserito un numero valido
-            Log.d("setOnClick", "numQuadrati: $numQuadrati")
-            imageView.setImageBitmap(generateImage(numQuadrati))
+            // Rigeneriamo l'immagine con nuovi colori
+            imageView.setImageBitmap(generateImage(seekBar.progress))
         }
     }
 
@@ -37,38 +45,36 @@ class MainActivity : AppCompatActivity() {
         val canvas = Canvas(bitmap)
         val paint = Paint()
 
-        // Calcola la metà dei quadrati; questa sarà la "linea mediana" per la riflessione speculare
-        val metàQuadrati = numQuadrati / 2
-
-        // Generiamo tre colori casuali
         val colors = listOf(randomColor(), randomColor(), randomColor())
 
-        for (x in 0 until metàQuadrati) {
+        for (x in 0 until numQuadrati) {
             for (y in 0 until numQuadrati) {
-                // Utilizziamo il modulo 3 per alternare tra i tre colori casuali
-                paint.color = colors[(x + y) % 3]
+                val color = colors.random()
+                paint.color = color
 
-                // Disegna il quadrato sulla sinistra
-                var leftUpPoint = x * latoQuadrato to y * latoQuadrato
+                // Calcoliamo le coordinate in modo esplicito
+                val left = x * latoQuadrato
+                val top = y * latoQuadrato
+                val right = left + latoQuadrato
+                val bottom = top + latoQuadrato
+
                 canvas.drawRect(
-                    leftUpPoint.first.toFloat(),
-                    leftUpPoint.second.toFloat(),
-                    (leftUpPoint.first + latoQuadrato).toFloat(),
-                    (leftUpPoint.second + latoQuadrato).toFloat(),
+                    left.toFloat(), top.toFloat(),
+                    right.toFloat(), bottom.toFloat(),
                     paint
                 )
-                // Disegna il quadrato speculare sulla destra
-                leftUpPoint = (numQuadrati - x - 1) * latoQuadrato to y * latoQuadrato
-                canvas.drawRect(
-                    leftUpPoint.first.toFloat(),
-                    leftUpPoint.second.toFloat(),
-                    (leftUpPoint.first + latoQuadrato).toFloat(),
-                    (leftUpPoint.second + latoQuadrato).toFloat(),
-                    paint
-                )
+
+                // Colorazione speculare
+                if (x != numQuadrati - x - 1) {
+                    paint.color = color
+                    canvas.drawRect(
+                        (dim - right).toFloat(), top.toFloat(),
+                        (dim - left).toFloat(), bottom.toFloat(),
+                        paint
+                    )
+                }
             }
         }
-
         return bitmap
     }
 
